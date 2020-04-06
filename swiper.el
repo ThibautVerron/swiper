@@ -1176,13 +1176,13 @@ WND, when specified is the window."
 
 (defvar swiper-window-width 80)
 
-;; FIXME: Do we want a behavior completely bypassing the prompt?
 (defvar swiper-obey-isearch-multi 'prompt
   "When non-nil, use data from multi-isearch for `swiper-multi'.
 
-If non-nil, prompt for a list of buffers, with the ones
-suggested by `multi-isearch' preselected.  If nil,
-ignore `multi-isearch'")
+It t, `swiper-multi' runs on all buffers listed by
+`multi-isearch'.  If any other non-nil value, prompt for a list
+of buffers, with the ones suggested by `multi-isearch'
+preselected.  If nil, ignore `multi-isearch'")
 
 (defvar swiper-multi-next-buffer-function nil
   "Store the current function to get the next buffer to explore.")
@@ -1200,16 +1200,13 @@ ignore `multi-isearch'")
              (funcall swiper-multi-next-buffer-function (current-buffer) t)))
           (isearch-forward nil))
       (let ((cur-buffer last-buffer)
-            (buffers (list (buffer-name last-buffer))))
+            (buffers (list last-buffer)))
         (while (not (eq cur-buffer first-buffer))
           (message (format "Buffer: %s Function: %s"
                            cur-buffer swiper-multi-next-buffer-function))
           (setq cur-buffer
                 (funcall swiper-multi-next-buffer-function cur-buffer))
-          ;; Since `ivy-read' expects the list of buffers to be a list
-          ;; of names, we do the inverse conversion. It might be
-          ;; possible to optimize further.
-          (setq buffers (cons (buffer-name cur-buffer) buffers)))
+          (setq buffers (cons cur-buffer buffers)))
         buffers))))
 
 (defun swiper-multi ()
@@ -1222,9 +1219,15 @@ Run `swiper' for those buffers."
                      multi-isearch-search
                      (bound-and-true-p multi-isearch-next-buffer-function))
             (swiper-multi-get-buffers)))
-    (ivy-read (swiper-multi-prompt)
-              #'internal-complete-buffer
-              :action #'swiper-multi-action-1)
+    (if (eq swiper-obey-isearch-multi t)
+        (setq swiper-multi-candidates swiper-multi-buffers)
+      (progn
+        ;; FIXME: Is it necessary to convert back to names only to
+        ;; convert back to buffers later?
+        (setq swiper-multi-buffers (mapcar #'buffer-name swiper-multi-buffers))
+        (ivy-read (swiper-multi-prompt)
+                  #'internal-complete-buffer
+                  :action #'swiper-multi-action-1)))
     (let ((swiper-window-width (- (- (frame-width) (if (display-graphic-p) 0 1)) 4)))
       (ivy-read "Swiper: " swiper-multi-candidates
                 :action #'swiper-multi-action-2
