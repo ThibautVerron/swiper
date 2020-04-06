@@ -1217,7 +1217,6 @@ Run `swiper' for those buffers."
   (let ((ivy-use-virtual-buffers nil))
     (setq swiper-multi-buffers 
           (when (and swiper-obey-isearch-multi
-                     multi-isearch-search
                      (bound-and-true-p multi-isearch-next-buffer-function))
             (swiper-multi-get-buffers)))
     (if (eq swiper-obey-isearch-multi t)
