@@ -1176,13 +1176,38 @@ WND, when specified is the window."
 
 (defvar swiper-window-width 80)
 
+(defvar swiper-obey-isearch-multi 'prompt
+  "When non-nil, use data from multi-isearch for `swiper-multi'
+
+If `prompt', prompt for a list of buffers, with the ones
+suggested by `multi-isearch' preselected.  If t or any other
+non-nil value, `swiper-multi' runs like `multi-isearch'.  If nil,
+ignore `multi-isearch'")
+
 (defun swiper-multi ()
   "Select one or more buffers.
 Run `swiper' for those buffers."
   (interactive)
   (setq swiper-multi-buffers nil)
   (let ((ivy-use-virtual-buffers nil))
-    (ivy-read (swiper-multi-prompt)
+    (when (and swiper-obey-isearch-multi
+	       multi-isearch-search
+	       (bound-and-true-p multi-isearch-next-buffer-function))
+      (let* ((first-buffer
+	      (let ((isearch-forward t))
+		(funcall multi-isearch-next-buffer-function (current-buffer) t)))
+	     (last-buffer
+	      (let ((isearch-forward nil))
+		(funcall multi-isearch-next-buffer-function (current-buffer) t)))
+	     (cur-buffer last-buffer)
+	     (isearch-forward nil))
+	(setq swiper-multi-buffers (list last-buffer))
+	(while (not (eq cur-buffer first-buffer))
+	  (setq swiper-multi-buffers
+		(funcall multi-isearch-next-buffer-function cur-buffer))
+	  (setq swiper-multi-buffers (cons cur-buffer swiper-multi-buffers)))))
+    (unless (eq swiper-obey-isearch-multi t)
+      (ivy-read (swiper-multi-prompt)
               #'internal-complete-buffer
               :action #'swiper-multi-action-1))
   (let ((swiper-window-width (- (- (frame-width) (if (display-graphic-p) 0 1)) 4)))
