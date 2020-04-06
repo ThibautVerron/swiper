@@ -1189,8 +1189,9 @@ preselected.  If nil, ignore `multi-isearch'")
 
 (defun swiper-multi-get-buffers ()
   "Get list of buffers from `multi-isearch'"
-  ;; In case some subfiles are e.g. shared between documents, we
-  ;; want to use the same function everywhere
+  ;; In case some subfiles are e.g. shared between different projects,
+  ;; they might not know what their next buffer should be. So we use
+  ;; the function from the calling buffer.
   (let ((swiper-multi-next-buffer-function multi-isearch-next-buffer-function))
     (let ((first-buffer
            (let ((isearch-forward t))
@@ -1220,7 +1221,8 @@ Run `swiper' for those buffers."
                      (bound-and-true-p multi-isearch-next-buffer-function))
             (swiper-multi-get-buffers)))
     (if (eq swiper-obey-isearch-multi t)
-        (setq swiper-multi-candidates swiper-multi-buffers)
+        (setq swiper-multi-candidates
+              (swiper--multi-candidates swiper-multi-buffers))
       (progn
         ;; FIXME: Is it necessary to convert back to names only to
         ;; convert back to buffers later?
